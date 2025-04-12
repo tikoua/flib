@@ -30,3 +30,15 @@ class BaseAccountOptions {
 }
 
 typedef BaseAccountOpt = Function(BaseAccountOptions);
+BaseAccountOpt withUid(String uid) {
+  return (options) {
+    options.uid = uid;
+  };
+}
+
+BaseAccountOpt withDbKitOpts(List<DbKitOpt> dbKitOpts) {
+  return (options) {
+    options.dbKitOpts.addAll(dbKitOpts);
+  };
+}
+
