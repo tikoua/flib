@@ -2,11 +2,11 @@ import 'package:flib/common/dispose.dart';
 import 'package:flib/db/db_kit.dart';
 
 class BaseAccount implements Disposable {
-  late final AccountOptions options;
+  late final BaseAccountOptions options;
   String get uid => options.uid;
 
-  BaseAccount(List<AccountOpt> opts) {
-    options = AccountOptions();
+  BaseAccount(List<BaseAccountOpt> opts) {
+    options = BaseAccountOptions();
     for (var opt in opts) {
       opt(options);
     }
@@ -16,9 +16,9 @@ class BaseAccount implements Disposable {
   Future<void> dispose() async {}
 }
 
-class AccountOptions {
+class BaseAccountOptions {
   String uid = "";
   List<DbKitOptions> dbKitOptions = [];
 }
 
-typedef AccountOpt = Function(AccountOptions);
+typedef BaseAccountOpt = Function(BaseAccountOptions);

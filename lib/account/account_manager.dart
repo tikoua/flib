@@ -24,7 +24,7 @@ class AccountManager {
   AccountManager._();
 
   late AccountManagerOptions _options;
-  late List<AccountOpt> _defaultAccountOpts;
+  late List<BaseAccountOpt> _defaultAccountOpts;
 
   //保存账号列表的 DbKit
   late final DbKit _accountListDbKit;
@@ -75,7 +75,7 @@ class AccountManager {
   }
 
   ///登录成功后将账号交给manager管理
-  Future<BaseAccount> addAccount({required List<AccountOpt> opts}) async {
+  Future<BaseAccount> addAccount({required List<BaseAccountOpt> opts}) async {
     _logger.debug("addAccount start");
     var account = await _createAccountByAccountOpts(opts);
     var serialization = _options.toSerialization!;
@@ -135,10 +135,10 @@ class AccountManager {
 
   ///根据账号配置创建账号
   Future<BaseAccount> _createAccountByAccountOpts(
-    List<AccountOpt> customOpts,
+    List<BaseAccountOpt> customOpts,
   ) async {
     _logger.debug("_createAccountByAccountOpts start");
-    var accountOpts = <AccountOpt>[];
+    var accountOpts = <BaseAccountOpt>[];
     accountOpts
       ..addAll(_defaultAccountOpts)
       ..addAll(_options.globalOpts)
@@ -181,13 +181,13 @@ class AccountManager {
 
 class AccountManagerOptions {
   ///客户端根据 [toSerialization] 序列化之后的信息，决定如何配置账号，序列化信息也是由客户端自己决定保存哪些内容
-  FutureOr<List<AccountOpt>> Function(SerializationInfo)? accountInitial;
+  FutureOr<List<BaseAccountOpt>> Function(SerializationInfo)? accountInitial;
 
   ///根据[BaseAccount] ，定义如何保存这个登录成功的账号信息,在还原时会将这个字符串交给[_accountInitial]来还原
   Future<SerializationInfo> Function(BaseAccount)? toSerialization;
 
   ///全局的账号配置
-  List<AccountOpt> globalOpts = [];
+  List<BaseAccountOpt> globalOpts = [];
 
   ///账号信息是否只保存在内存中
   bool isDbKitInMemory = false;
@@ -196,7 +196,7 @@ class AccountManagerOptions {
 typedef AccountManagerOpt = Function(AccountManagerOptions);
 
 AccountManagerOpt withAccountInitial(
-  FutureOr<List<AccountOpt>> Function(SerializationInfo) accountInitial,
+  FutureOr<List<BaseAccountOpt>> Function(SerializationInfo) accountInitial,
 ) {
   return (options) {
     options.accountInitial = accountInitial;
@@ -211,7 +211,7 @@ AccountManagerOpt withSerialization(
   };
 }
 
-AccountManagerOpt withGlobalOpts(List<AccountOpt> globalOpts) {
+AccountManagerOpt withGlobalOpts(List<BaseAccountOpt> globalOpts) {
   return (options) {
     options.globalOpts = globalOpts;
   };
