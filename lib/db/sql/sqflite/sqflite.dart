@@ -2,7 +2,6 @@ import 'dart:async';
 
 import 'package:flib/db/sql/base_dao.dart';
 import 'package:flib/db/sql/data_base.dart';
-import 'package:sqflite/sqflite.dart';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 
 ///基于sqflite实现的 [DbStorage]
