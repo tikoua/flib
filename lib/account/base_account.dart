@@ -2,13 +2,13 @@ import 'package:flib/common/dispose.dart';
 import 'package:flib/db/db_kit.dart';
 
 class BaseAccount implements Disposable {
-  late final BaseAccountOptions options;
-  String get uid => options.uid;
+  late final BaseAccountOptions _options;
+  String get uid => _options.uid;
 
   BaseAccount(List<BaseAccountOpt> opts) {
-    options = BaseAccountOptions();
+    _options = BaseAccountOptions();
     for (var opt in opts) {
-      opt(options);
+      opt(_options);
     }
   }
 
