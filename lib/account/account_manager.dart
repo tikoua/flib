@@ -69,6 +69,7 @@ class AccountManager {
     ]);
     //加载本地账号信息
     var accounts = await _loadLoggedAccounts();
+    _logger.debug("缓存的账号数量: ${accounts?.length}");
     if (accounts != null && accounts.isNotEmpty) {
       _loggedAccounts.addAll(accounts);
     }
