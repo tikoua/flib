@@ -1,3 +1,4 @@
+import 'package:flib/common/system/app_info/app_info.dart';
 import 'package:flib/common/system/app_info/app_info_dart.dart'
     if (dart.library.ui) 'package:flib/common/system/app_info/app_info_flutter.dart';
 

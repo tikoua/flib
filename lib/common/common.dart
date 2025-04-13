@@ -1,6 +1,7 @@
 export 'package:flib/common/dispose.dart';
 export 'package:flib/common/iterable_ext.dart';
 export 'package:flib/common/logger.dart';
+export 'package:flib/common/system/app_info/app_info.dart';
 export 'package:flib/common/system/app_info/app_info_utils.dart';
 export 'package:flib/common/system/connect/connectivity_utils.dart';
 export 'package:flib/common/system/device/device_info_utils.dart';
