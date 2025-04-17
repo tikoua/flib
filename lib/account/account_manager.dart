@@ -3,7 +3,7 @@ import 'dart:convert';
 
 import 'package:flib/account/account_dao.dart';
 import 'package:flib/account/base_account.dart';
-import 'package:flib/common/iterable_ext.dart';
+import 'package:flib/account/base_account_info.dart';
 import 'package:flib/common/logger.dart';
 import 'package:flib/common/system/path/path_util.dart';
 import 'package:flib/db/db_kit.dart';
@@ -14,12 +14,6 @@ import 'package:flib/db/sql/sqflite/sqflite.dart';
 class AccountManager {
   static final _logger = Logger('AccountManager');
 
-  //DbKit中kv的 IdentityId
-  static final _accountInfoIdentityId = "imlib_account_manager";
-
-  //账号列表的key
-  static final _keyLoggedInfoList = "logged_info_list";
-
   static final instance = AccountManager._();
 
   AccountManager._();
@@ -27,15 +21,16 @@ class AccountManager {
   late AccountManagerOptions _options;
   late List<BaseAccountOpt> _defaultAccountOpts;
 
-  //保存账号列表的 DbKit
-  late final DbKit<SharedPreferenceKv, SqfLiteDb> _accountListDbKit;
+  //保存账号列表的 DAO
+  late final AccountDao _accountDao;
 
   final List<BaseAccount> _loggedAccounts = [];
-  final StreamController<List<BaseAccount>> _loggedAccountStreamController =
+  final List<BaseAccount> _loggedOutAccounts = [];
+  final StreamController<AccountList> _accountListStreamController =
       StreamController.broadcast();
 
-  Stream<List<BaseAccount>> get loggedAccountStream =>
-      _loggedAccountStreamController.stream;
+  Stream<AccountList> get accountListStream =>
+      _accountListStreamController.stream;
 
   ///初始化
   ///[globalOpts] 全局账号配置
@@ -57,8 +52,9 @@ class AccountManager {
     //目前没有需要额外配置的
     _defaultAccountOpts = [];
 
-    _accountListDbKit = await createSqfliteDbKit([
-      withKvOpts([withIdentityId(_accountInfoIdentityId)]),
+    // 初始化数据库和DAO
+    var dbKit = await createSqfliteDbKit([
+      withKvOpts([withIdentityId("imlib_account_manager")]),
       withDbOpts([
         withIsInMemory(options.isDbKitInMemory),
         withDBPath(
@@ -68,16 +64,14 @@ class AccountManager {
         ),
       ]),
     ]);
-    await _accountListDbKit.withDataBase((db) async {
-      var accountDao = AccountDao(db.db, 'account');
-      accountDao.createTable();
+    await dbKit.start();
+    await dbKit.withDataBase((db) async {
+      _accountDao = AccountDao(db.db, 'account');
+      await _accountDao.createTable();
     });
+
     //加载本地账号信息
-    var accounts = await _loadLoggedAccounts();
-    _logger.debug("缓存的账号数量: ${accounts?.length}");
-    if (accounts != null && accounts.isNotEmpty) {
-      _loggedAccounts.addAll(accounts);
-    }
+    await _loadAllAccounts();
   }
 
   ///登录成功后将账号交给manager管理
@@ -87,10 +81,36 @@ class AccountManager {
     var serialization = _options.toSerialization!;
     var serializationInfo = await serialization.call(account);
     _logger.debug("addAccount serializationInfo: $serializationInfo");
-    List<SerializationInfo> infoList = await _loadLoggedInfoList() ?? [];
-    infoList.add(serializationInfo);
-    await _updateLoggedAccountList(infoList);
-    _loggedAccounts.add(account);
+    
+    // 检查账号是否已存在
+    var existingAccountInfo = await _accountDao.getById(account.uid);
+    if (existingAccountInfo != null) {
+      // 更新账号状态为已登录
+      await _accountDao.updateLogState(account.uid, BaseAccountInfo.logStateLogged);
+      
+      // 如果账号在已登出列表中，则移动到已登录列表
+      var loggedOutAccount = _loggedOutAccounts.firstWhere(
+        (a) => a.uid == account.uid,
+        orElse: () => account,
+      );
+      if (loggedOutAccount != account) {
+        _loggedOutAccounts.remove(loggedOutAccount);
+        _loggedAccounts.add(loggedOutAccount);
+      } else {
+        _loggedAccounts.add(account);
+      }
+    } else {
+      // 保存新账号信息到数据库
+      var accountInfo = BaseAccountInfo(
+        uid: account.uid,
+        logState: BaseAccountInfo.logStateLogged,
+        rawData: serializationInfo.serialization,
+      );
+      await _accountDao.insert(accountInfo);
+      _loggedAccounts.add(account);
+    }
+    
+    _notifyAccountListChanged();
     return account;
   }
 
@@ -99,41 +119,25 @@ class AccountManager {
     _logger.debug("disposeAccount start");
     //释放账号资源
     await account.dispose();
-    //将账号信息从保存的cmd列表中移除
-    var localInfoList = await _loadLoggedInfoList();
-    if (localInfoList == null || localInfoList.isEmpty) {
-      throw Exception("local online cmd list is empty");
-    }
-    var accountInfo = await _options.toSerialization!(account);
-    var accountCmd = localInfoList.firstOrNullWhere(
-      (info) => info.uniqueId == accountInfo.uniqueId,
-    );
-    if (accountCmd == null) {
-      throw Exception("account online cmd not found");
-    }
-    localInfoList.remove(accountCmd);
-    await _updateLoggedAccountList(localInfoList);
+    
+    // 更新账号状态为已登出
+    await _accountDao.updateLogState(account.uid, BaseAccountInfo.logStateLoggedOut);
+    
     _loggedAccounts.remove(account);
-  }
-
-  ///更新本地保存的已登录账号信息
-  Future<void> _updateLoggedAccountList(
-    List<SerializationInfo> loggedInfoList,
-  ) async {
-    _logger.debug("_updateLoggedAccountList start ${loggedInfoList.length}");
-    List<String> onlineStr =
-        loggedInfoList.map((info) => info.toString()).toList();
-    var str = jsonEncode(onlineStr);
-    _logger.debug("_updateLoggedAccountList str: $str");
-    await _accountListDbKit.put(_keyLoggedInfoList, str);
-    var str2 = await _accountListDbKit.get<String>(_keyLoggedInfoList);
-    _logger.debug("写入后直接读_updateLoggedAccountList str2: $str2");
+    _loggedOutAccounts.add(account);
+    _notifyAccountListChanged();
   }
 
   ///在线账户列表；不可修改；
   Future<List<BaseAccount>> getAllLoggedAccounts() async {
     _logger.debug("getAllLoggedAccounts start");
     return List.unmodifiable(_loggedAccounts);
+  }
+
+  ///获取所有已登出账号
+  Future<List<BaseAccount>> getAllLoggedOutAccounts() async {
+    _logger.debug("getAllLoggedOutAccounts start");
+    return List.unmodifiable(_loggedOutAccounts);
   }
 
   ///根据保存的账号信息恢复账号
@@ -158,36 +162,34 @@ class AccountManager {
     return account;
   }
 
-  ///从保存的登录信息中加载已登录账号
-  Future<List<BaseAccount>?> _loadLoggedAccounts() async {
-    _logger.debug("_loadLoggedAccounts start");
-    return _loadLoggedInfoList().then((infoList) async {
-      if (infoList == null || infoList.isEmpty) {
-        return null;
+  ///加载所有账号信息
+  Future<void> _loadAllAccounts() async {
+    _logger.debug("_loadAllAccounts start");
+    var allAccounts = await _accountDao.getAll();
+    
+    for (var accountInfo in allAccounts) {
+      var serializationInfo = SerializationInfo(
+        uniqueId: accountInfo.uid,
+        serialization: accountInfo.rawData,
+      );
+      final account = await _recoverAccountByInfo(serializationInfo);
+      
+      if (accountInfo.isLogged()) {
+        _loggedAccounts.add(account);
+      } else if (accountInfo.isLoggedOut()) {
+        _loggedOutAccounts.add(account);
       }
-      List<BaseAccount> loggedAccountsLocal = [];
-      await Future.forEach(infoList, (info) async {
-        final account = await _recoverAccountByInfo(info);
-        loggedAccountsLocal.insert(0, account);
-      });
-      return loggedAccountsLocal;
-    });
+    }
+    
+    _notifyAccountListChanged();
   }
 
-  ///从本地加载已登录账户登录序列化结果列表
-  Future<List<SerializationInfo>?> _loadLoggedInfoList() async {
-    _logger.debug("_loadLoggedInfoList start");
-    var onlineStr = await _accountListDbKit.get<String>(_keyLoggedInfoList);
-    _logger.debug("_loadLoggedInfoList onlineStr: $onlineStr");
-    if (onlineStr == null) {
-      return null;
-    }
-    List<dynamic> loggedList = jsonDecode(onlineStr);
-    var infoList =
-        loggedList.map((s) {
-          return SerializationInfo.fromString(s);
-        }).toList();
-    return infoList;
+  ///通知账号列表变更
+  void _notifyAccountListChanged() {
+    _accountListStreamController.add(AccountList(
+      loggedAccounts: List.unmodifiable(_loggedAccounts),
+      loggedOutAccounts: List.unmodifiable(_loggedOutAccounts),
+    ));
   }
 }
 
@@ -259,4 +261,11 @@ class SerializationInfo {
     json['serialization'] = serialization;
     return jsonEncode(json);
   }
+}
+
+class AccountList {
+  final List<BaseAccount> loggedAccounts;
+  final List<BaseAccount> loggedOutAccounts;
+
+  AccountList({required this.loggedAccounts, required this.loggedOutAccounts});
 }

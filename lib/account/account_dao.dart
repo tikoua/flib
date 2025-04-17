@@ -73,4 +73,14 @@ class AccountDao extends BaseDao<BaseAccountInfo> {
       return BaseAccountInfo.fromDb(maps[i]);
     });
   }
+
+  /// 只更新账号的登录状态
+  Future<int> updateLogState(String uid, String logState) async {
+    return await db.update(
+      tableName,
+      {'log_state': logState},
+      where: 'uid = ?',
+      whereArgs: [uid],
+    );
+  }
 }

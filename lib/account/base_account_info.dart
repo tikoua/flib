@@ -1,9 +1,9 @@
 class BaseAccountInfo {
-  static const _logStateLogged = 'logged';
-  static const _logStateLoggedOut = 'logged_out';
-  String uid;
+  static const String logStateLogged = 'logged';
+  static const String logStateLoggedOut = 'logged_out';
+  final String uid;
   String logState;
-  String rawData;
+  final String rawData;
 
   BaseAccountInfo({
     required this.uid,
@@ -11,23 +11,27 @@ class BaseAccountInfo {
     required this.rawData,
   });
 
-  factory BaseAccountInfo.fromDb(Map<String, dynamic> json) {
+  factory BaseAccountInfo.fromDb(Map<String, dynamic> map) {
     return BaseAccountInfo(
-      uid: json['uid'],
-      logState: json['logState'],
-      rawData: json['rawData'],
+      uid: map['uid'],
+      logState: map['log_state'],
+      rawData: map['raw_data'],
     );
   }
 
   Map<String, dynamic> toDb() {
-    return {'uid': uid, 'logState': logState, 'rawData': rawData};
+    return {
+      'uid': uid,
+      'log_state': logState,
+      'raw_data': rawData,
+    };
   }
 
   bool isLogged() {
-    return logState == _logStateLogged;
+    return logState == logStateLogged;
   }
 
   bool isLoggedOut() {
-    return logState == _logStateLoggedOut;
+    return logState == logStateLoggedOut;
   }
 }
