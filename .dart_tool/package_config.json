@@ -500,6 +500,12 @@
       "languageVersion": "3.5"
     },
     {
+      "name": "sqlite3_flutter_libs",
+      "rootUri": "file:///Users/dcl/.pub-cache/hosted/pub.dev/sqlite3_flutter_libs-0.5.32",
+      "packageUri": "lib/",
+      "languageVersion": "2.12"
+    },
+    {
       "name": "stack_trace",
       "rootUri": "file:///Users/dcl/.pub-cache/hosted/pub.dev/stack_trace-1.12.1",
       "packageUri": "lib/",
@@ -638,7 +644,7 @@
       "languageVersion": "3.7"
     }
   ],
-  "generated": "2025-04-12T13:09:52.323276Z",
+  "generated": "2025-04-17T13:40:58.792587Z",
   "generator": "pub",
   "generatorVersion": "3.7.2",
   "flutterRoot": "file:///usr/local/Caskroom/flutter/3.29.2/flutter",
