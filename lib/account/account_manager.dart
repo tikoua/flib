@@ -104,7 +104,7 @@ class AccountManager {
       var accountInfo = BaseAccountInfo(
         uid: account.uid,
         logState: BaseAccountInfo.logStateLogged,
-        rawData: serializationInfo.serialization,
+        serialization: serializationInfo.serialization,
       );
       await _accountDao.insert(accountInfo);
       _loggedAccounts.add(account);
@@ -130,13 +130,13 @@ class AccountManager {
 
   ///在线账户列表；不可修改；
   Future<List<BaseAccount>> getAllLoggedAccounts() async {
-    _logger.debug("getAllLoggedAccounts start");
+    _logger.debug("getAllLoggedAccounts start ${_loggedAccounts.length}");
     return List.unmodifiable(_loggedAccounts);
   }
 
   ///获取所有已登出账号
   Future<List<BaseAccount>> getAllLoggedOutAccounts() async {
-    _logger.debug("getAllLoggedOutAccounts start");
+    _logger.debug("getAllLoggedOutAccounts start ${_loggedOutAccounts.length}");
     return List.unmodifiable(_loggedOutAccounts);
   }
 
@@ -166,14 +166,15 @@ class AccountManager {
   Future<void> _loadAllAccounts() async {
     _logger.debug("_loadAllAccounts start");
     var allAccounts = await _accountDao.getAll();
-    
+    _logger.debug("allAccounts: ${allAccounts.length}");
     for (var accountInfo in allAccounts) {
+      _logger.debug("accountInfo: ${accountInfo.serialization}");
       var serializationInfo = SerializationInfo(
         uniqueId: accountInfo.uid,
-        serialization: accountInfo.rawData,
+        serialization: accountInfo.serialization,
       );
       final account = await _recoverAccountByInfo(serializationInfo);
-      
+      _logger.debug("account: ${account.uid}  ${accountInfo.isLogged()}  ${accountInfo.isLoggedOut()}");
       if (accountInfo.isLogged()) {
         _loggedAccounts.add(account);
       } else if (accountInfo.isLoggedOut()) {

@@ -8,10 +8,10 @@ class AccountDao extends BaseDao<BaseAccountInfo> {
   Future<void> createTable() async {
     var sql = '''
       CREATE TABLE IF NOT EXISTS $tableName (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
         uid TEXT NOT NULL UNIQUE,
         log_state TEXT NOT NULL,
-        raw_data TEXT NOT NULL,
-        PRIMARY KEY (uid)
+        serialization TEXT NOT NULL
       );
       CREATE INDEX IF NOT EXISTS idx_${tableName}_uid ON $tableName (uid);
       CREATE INDEX IF NOT EXISTS idx_${tableName}_log_state ON $tableName (log_state);

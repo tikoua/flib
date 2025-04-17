@@ -9,7 +9,7 @@ class BaseAccount implements Disposable {
   String get logState => _options.logState;
   String get rawData => _options.rawData;
   late final DbKit<SharedPreferenceKv, SqfLiteDb> dbKit;
-
+  dynamic get extra => _options.extra;
   BaseAccount(List<BaseAccountOpt> opts) {
     _options = BaseAccountOptions();
     for (var opt in opts) {
@@ -32,6 +32,7 @@ class BaseAccountOptions {
   String logState = "";
   String rawData = "";
   List<DbKitOpt> dbKitOpts = [];
+  dynamic extra;
 }
 
 typedef BaseAccountOpt = Function(BaseAccountOptions);
@@ -57,5 +58,11 @@ BaseAccountOpt withRawData(String rawData) {
 BaseAccountOpt withDbKitOpts(List<DbKitOpt> dbKitOpts) {
   return (options) {
     options.dbKitOpts.addAll(dbKitOpts);
+  };
+}
+
+BaseAccountOpt withExtra(dynamic extra) {
+  return (options) {
+    options.extra = extra;
   };
 }
