@@ -5,7 +5,6 @@ abstract class BaseDao<T> {
   final String tableName;
 
   BaseDao(this.db, this.tableName);
-  Future<void> createTable(Database db);
   Future<int> insert(T item);
   Future<T?> getById(int id);
   Future<List<T>> getAll();

@@ -1,6 +1,5 @@
 import 'dart:async';
 
-import 'package:flib/db/sql/base_dao.dart';
 import 'package:flib/db/sql/data_base.dart';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 
@@ -39,10 +38,6 @@ class SqfLiteDb implements DbStorage {
     // Init ffi loader if needed.
     sqfliteFfiInit();
     db = await databaseFactoryFfi.openDatabase(path, options: dbOptions);
-    var tables = _options.tables;
-    for (var table in tables) {
-      await table.createTable(db);
-    }
   }
 
   @override
@@ -63,9 +58,6 @@ class SqfliteOptions {
 
   ///是否通过日志输出执行的语句
   bool logStatements = false;
-
-  ///需要创建的表
-  List<BaseDao> tables = [];
 
   SqfliteOptions();
 }
@@ -95,11 +87,5 @@ SqfliteOpt withWalMode(bool walMode) {
 SqfliteOpt withLogStatements(bool logStatements) {
   return (options) {
     options.logStatements = logStatements;
-  };
-}
-
-SqfliteOpt withTable(BaseDao dao) {
-  return (options) {
-    options.tables.add(dao);
   };
 }

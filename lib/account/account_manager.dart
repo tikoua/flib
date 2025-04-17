@@ -81,6 +81,7 @@ class AccountManager {
     var account = await _createAccountByAccountOpts(opts);
     var serialization = _options.toSerialization!;
     var serializationInfo = await serialization.call(account);
+    _logger.debug("addAccount serializationInfo: $serializationInfo");
     List<SerializationInfo> infoList = await _loadLoggedInfoList() ?? [];
     infoList.add(serializationInfo);
     await _updateLoggedAccountList(infoList);
@@ -114,10 +115,14 @@ class AccountManager {
   Future<void> _updateLoggedAccountList(
     List<SerializationInfo> loggedInfoList,
   ) async {
-    _logger.debug("_updateLoggedAccountList start ");
+    _logger.debug("_updateLoggedAccountList start ${loggedInfoList.length}");
     List<String> onlineStr =
         loggedInfoList.map((info) => info.toString()).toList();
-    _accountListDbKit.put(_keyLoggedInfoList, jsonEncode(onlineStr));
+    var str = jsonEncode(onlineStr);
+    _logger.debug("_updateLoggedAccountList str: $str");
+    await _accountListDbKit.put(_keyLoggedInfoList, str);
+    var str2 = await _accountListDbKit.get<String>(_keyLoggedInfoList);
+    _logger.debug("写入后直接读_updateLoggedAccountList str2: $str2");
   }
 
   ///在线账户列表；不可修改；
@@ -168,6 +173,7 @@ class AccountManager {
   Future<List<SerializationInfo>?> _loadLoggedInfoList() async {
     _logger.debug("_loadLoggedInfoList start");
     var onlineStr = await _accountListDbKit.get<String>(_keyLoggedInfoList);
+    _logger.debug("_loadLoggedInfoList onlineStr: $onlineStr");
     if (onlineStr == null) {
       return null;
     }
