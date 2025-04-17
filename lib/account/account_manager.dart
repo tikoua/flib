@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:convert';
 
+import 'package:flib/account/account_dao.dart';
 import 'package:flib/account/base_account.dart';
 import 'package:flib/common/iterable_ext.dart';
 import 'package:flib/common/logger.dart';
@@ -27,7 +28,7 @@ class AccountManager {
   late List<BaseAccountOpt> _defaultAccountOpts;
 
   //保存账号列表的 DbKit
-  late final DbKit _accountListDbKit;
+  late final DbKit<SharedPreferenceKv, SqfLiteDb> _accountListDbKit;
 
   final List<BaseAccount> _loggedAccounts = [];
   final StreamController<List<BaseAccount>> _loggedAccountStreamController =
@@ -67,6 +68,10 @@ class AccountManager {
         ),
       ]),
     ]);
+    await _accountListDbKit.withDataBase((db) async {
+      var accountDao = AccountDao(db.db, 'account');
+      accountDao.createTable();
+    });
     //加载本地账号信息
     var accounts = await _loadLoggedAccounts();
     _logger.debug("缓存的账号数量: ${accounts?.length}");

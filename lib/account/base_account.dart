@@ -6,7 +6,10 @@ import 'package:flib/db/sql/sqflite/sqflite.dart';
 class BaseAccount implements Disposable {
   late final BaseAccountOptions _options;
   String get uid => _options.uid;
+  String get logState => _options.logState;
+  String get rawData => _options.rawData;
   late final DbKit<SharedPreferenceKv, SqfLiteDb> dbKit;
+
   BaseAccount(List<BaseAccountOpt> opts) {
     _options = BaseAccountOptions();
     for (var opt in opts) {
@@ -26,13 +29,28 @@ class BaseAccount implements Disposable {
 
 class BaseAccountOptions {
   String uid = "";
+  String logState = "";
+  String rawData = "";
   List<DbKitOpt> dbKitOpts = [];
 }
 
 typedef BaseAccountOpt = Function(BaseAccountOptions);
+
 BaseAccountOpt withUid(String uid) {
   return (options) {
     options.uid = uid;
+  };
+}
+
+BaseAccountOpt withLogState(String logState) {
+  return (options) {
+    options.logState = logState;
+  };
+}
+
+BaseAccountOpt withRawData(String rawData) {
+  return (options) {
+    options.rawData = rawData;
   };
 }
 
@@ -41,4 +59,3 @@ BaseAccountOpt withDbKitOpts(List<DbKitOpt> dbKitOpts) {
     options.dbKitOpts.addAll(dbKitOpts);
   };
 }
-
